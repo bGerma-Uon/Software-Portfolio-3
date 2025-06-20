@@ -1,6 +1,10 @@
 # Created by https://www.toptal.com/developers/gitignore/api/pycharm,intellij,python,database,git,venv,virtualenv
 # Edit at https://www.toptal.com/developers/gitignore?templates=pycharm,intellij,python,database,git,venv,virtualenv
 
+### Credentials ###
+**/credentials/**
+
+
 ### Database ###
 *.accdb
 *.db
