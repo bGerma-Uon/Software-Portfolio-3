@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Database Credentials Schema",
+  "description": "Schema for the database credentials file.",
+  "type": "object",
+  "properties": {
+    "defaultProfile": {
+      "description": "The name of the default profile to use.",
+      "type": "string"
+    },
+    "defaultDatabase": {
+      "description": "The name of the default database to use.",
+      "type": "string"
+    },
+    "credentials": {
+      "description": "A list of credential profiles.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "profileName": {
+            "description": "The unique name for the profile.",
+            "type": "string"
+          },
+          "host": {
+            "description": "The database host.",
+            "type": "string"
+          },
+          "user": {
+            "description": "The username for the database connection.",
+            "type": "string"
+          },
+          "password": {
+            "description": "The password for the database connection.",
+            "type": "string"
+          },
+          "database": {
+            "description": "The name of the database.",
+            "type": "string"
+          },
+          "ssh": {
+            "description": "SSH tunnel configuration. Can be null if not used.",
+            "type": ["object", "null"],
+            "properties": {
+              "host": {
+                "description": "The SSH host.",
+                "type": "string"
+              },
+              "user": {
+                "description": "The SSH username.",
+                "type": "string"
+              },
+              "password": {
+                "description": "The SSH password.",
+                "type": "string"
+              }
+            },
+            "required": ["host", "user", "password"]
+          }
+        },
+        "required": ["profileName", "host", "user", "password", "database", "ssh"]
+      }
+    }
+  },
+  "required": ["defaultProfile", "defaultDatabase", "credentials"]
+}
