@@ -1,0 +1,26 @@
+{
+  "defaultProfile": "test_1",
+  "defaultDatabase": "test_database_1",
+  "credentials": [
+    {
+      "profileName": "test_1",
+      "host": "test_host_1",
+      "user": "test_user_1",
+      "password": "test_password_1",
+      "database": "test_database_1",
+      "ssh": {
+        "host": "test_ssh_host@cloud.com",
+        "user": "test_ssh_user",
+        "password": "test_ssh_password"
+      }
+    },
+    {
+      "profileName": "test_2",
+      "host": "test_host_2",
+      "user": "test_user_2",
+      "password": "test_password_2",
+      "database": "test_database_2",
+      "ssh": null
+    }
+  ]
+}

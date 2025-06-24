@@ -53,15 +53,13 @@ class DatabaseManager:
         """
         Establishes a connection to the MySQL server.
 
-        Args:
-            use_database (bool): If True, connect to the specified
-                                 database. Otherwise, connect without
-                                 specifying a database (e.g., for
-                                 creating the database itself).
-                                 Defaults to False.
+        :param use_database: (bool)
+            If True, connect to the specified database. Otherwise, connect
+            without specifying a database (e.g., for creating the database
+            itself). Defaults to False.
 
-        Raises:
-            RuntimeError: If the database connection fails.
+        :raises RuntimeError:
+            If the database connection fails.
         """
         try:
             if use_database:

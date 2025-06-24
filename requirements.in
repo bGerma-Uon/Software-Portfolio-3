@@ -3,4 +3,9 @@ seaborn
 numpy
 matplotlib
 scikit-learn
+pymysql
 mysql-connector-python
+sqlalchemy
+jsonschema
+pytest
+cryptography
