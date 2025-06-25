@@ -20,31 +20,7 @@ class CSVColumns(StrEnum):
     PRIORITY = "priority"
 
 
-class ColumnExplodeGroup1(StrEnum):
-    """
-    Tracks the column names of the csv file
-    """
-    PULSE_COUNTS = CSVColumns.PULSE_COUNTS
-    UNIQUE_IDS = CSVColumns.UNIQUE_IDS
-    KEYS = CSVColumns.KEYS
-
-
-class ColumnExplodeGroup2(StrEnum):
-    """
-    Tracks the column names of the csv file
-    """
-    FOUND_BY = CSVColumns.FOUND_BY
-
-
-class ColumnDropGroup(StrEnum):
-    """
-    Tracks the column names of the csv file
-    """
-    PULSE_COUNT = CSVColumns.PULSE_COUNT
-    UNIQUE_ID = "unique_id"
-
-
-class NormalizedColumns(StrEnum):
+class NormalisedColumns(StrEnum):
     """
     Tracks the column names of the normalized table
     """
@@ -56,3 +32,27 @@ class NormalizedColumns(StrEnum):
     TOP_RAIL = "top_rail"
     KEYS = "keys"
     PRIORITY = "priority"
+
+
+class ColumnExplodeGroup1(StrEnum):
+    """
+    Tracks the column names of the csv file
+    """
+    PULSE_COUNTS = NormalisedColumns.PULSE_COUNTS
+    UNIQUE_IDS = NormalisedColumns.UNIQUE_IDS
+    KEYS = NormalisedColumns.KEYS
+
+
+class ColumnExplodeGroup2(StrEnum):
+    """
+    Tracks the column names of the csv file
+    """
+    FOUND_BY = NormalisedColumns.FOUND_BY
+
+
+class ColumnDropGroup(StrEnum):
+    """
+    Tracks the column names of the csv file
+    """
+    PULSE_COUNT = CSVColumns.PULSE_COUNT
+    UNIQUE_ID = CSVColumns.UNIQUE_ID
