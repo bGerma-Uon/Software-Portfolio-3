@@ -1,15 +1,10 @@
 """
-SQLAlchemy Example
-
-This file provides a comprehensive example of using SQLAlchemy, covering basic
-operations and more advanced features like relationships, session management,
-and base model mixins.
+This is the main management module for the database.
 """
 
 # Builtins
 import logging
 from contextlib import contextmanager
-from pathlib import Path
 
 # External
 from sqlalchemy import create_engine
@@ -53,13 +48,13 @@ BASE = declarative_base()
 # --- Session Management ---
 
 @contextmanager
-def session_scope() -> Session:
+def session_scope() -> Session:  # noqa
     """
-    Provide a transactional scope around a series of operations.
-    """
+        Provide a transactional scope around a series of operations.
+        """
     session = SESSION_MAKER()
     try:
-        yield session
+        yield session  # noqa
         session.commit()
     except Exception:
         session.rollback()
@@ -72,27 +67,27 @@ def session_scope() -> Session:
 
 class SqlBaseMixin:
     """
-    A base mixin class that provides common CRUD operations.
-    """
+        A base mixin class that provides common CRUD operations.
+        """
     __abstract__ = True
 
     @classmethod
     def get_one(cls, session: Session, **kwargs):
         """
-        Gets a single object from the database based on filter criteria.
-        """
+            Gets a single object from the database based on filter criteria.
+            """
         return session.query(cls).filter_by(**kwargs).one()
 
     @classmethod
     def get_one_or_create(cls, session: Session, **kwargs):
         """
-        Tries to get an object, and if it doesn't exist, creates it.
-        """
+            Tries to get an object, and if it doesn't exist, creates it.
+            """
         try:
             instance = cls.get_one(session, **kwargs)
             return instance, False
         except NoResultFound:
-            instance = cls(**kwargs)
+            instance = cls(**kwargs)  # noqa
             session.add(instance)
             return instance, True
 
@@ -106,5 +101,7 @@ class SqlBaseMixin:
         session.delete(self)
 
 
-# Import models here to ensure they are registered with the BASE metadata.
 from .railDefect import RailDefect
+from .testSegment import TestSegment
+from .foundBy import FoundBy
+from .defect import Defect
