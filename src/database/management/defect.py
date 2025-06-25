@@ -6,9 +6,11 @@ Defect Table
 pass
 
 # External
+from sqlalchemy import Integer
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey
 from sqlalchemy import String
+from sqlalchemy import UniqueConstraint
 from sqlalchemy.orm import relationship
 
 # Internal
@@ -23,11 +25,8 @@ class Defect(SqlBaseMixin, BASE):
     guid = Column(String(32), primary_key=True)
 
     # Columns
-    priority_id = Column(
-        String(32), ForeignKey('priority.guid'),
-    )
-    test_segment_id = Column(
-        String(32), ForeignKey('test_segment.guid'),
+    priority = Column(
+        Integer, nullable=True,
     )
     location_id = Column(
         String(32), ForeignKey('location.guid'),
@@ -35,23 +34,25 @@ class Defect(SqlBaseMixin, BASE):
     player_id = Column(
         String(32), ForeignKey('player.guid'),
     )
-    suspect_group_id = Column(
-        String(32), ForeignKey('suspect_group.guid'),
+    defect_code_id = Column(
+        String(32), ForeignKey('defect_code.guid'),
+    )
+    suspect_group = Column(
+        Integer, nullable=False,
     )
 
     # Relationships
-    priority = relationship(
-        'Priority', back_populates='defect',
-    )
-    test_segment = relationship(
-        'TestSegment', back_populates='defect',
-    )
     location = relationship(
         'Location', back_populates='defect',
     )
     player = relationship(
         'Player', back_populates='defect',
     )
-    suspect_group = relationship(
-        'SuspectGroup', back_populates='defect',
+    defect_code = relationship(
+        'DefectCode', back_populates='defect',
+    )
+
+    __table_args__ = (
+        UniqueConstraint('priority', name='_priority_uc'),
+        UniqueConstraint('group', name='_group_uc'),
     )
