@@ -107,8 +107,6 @@ class SqlBaseMixin:
 
 from .testSegment import TestSegment
 from .player import Player
-from .priority import Priority
-from .suspectGroup import SuspectGroup
 from .defectCode import DefectCode
 from .location import Location
 from .defect import Defect

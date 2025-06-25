@@ -54,5 +54,5 @@ class Defect(SqlBaseMixin, BASE):
 
     __table_args__ = (
         UniqueConstraint('priority', name='_priority_uc'),
-        UniqueConstraint('group', name='_group_uc'),
+        UniqueConstraint('suspect_group', name='_suspect_group_uc'),
     )
