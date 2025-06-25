@@ -12,19 +12,25 @@ from typing import Any
 # External
 import pandas
 
+from src.database.dataIngestion.columnConfig import column_mapping
+from src.database.dataIngestion.columns import ColumnDropGroup
+from src.database.dataIngestion.columns import ColumnExplodeGroup1
+from src.database.dataIngestion.columns import ColumnExplodeGroup2
 # Internal
 from src.database.management import BASE
-from src.database.management import ENGINE
-from src.database.management import session_scope
 from src.database.management import Defect
+from src.database.management import ENGINE
 from src.database.management import FoundBy
 from src.database.management import TestSegment
+from src.database.management import session_scope
 
-# --- Configuration ---
+
+# Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-REPO_ROOT = Path(__file__).parent.parent.parent
+# CONSTANTS
+REPO_ROOT = Path(__file__).parent.parent.parent.parent
 CSV_PATH = REPO_ROOT / "data" / "found_by_23_July_2022_to_29_July_2022.csv"
 if not CSV_PATH.exists():
     raise FileNotFoundError(f"CSV file not found at: {CSV_PATH}")
@@ -53,63 +59,96 @@ def load_normalized_data():
 
     # 1. Drop and recreate tables.
     logger.info("Dropping and recreating normalized tables...")
-    BASE.metadata.drop_all(ENGINE, checkfirst=True)
+    BASE.metadata.drop_all(ENGINE)
     BASE.metadata.create_all(ENGINE)
 
-    # 2. Read data from the CSV file.
+    # 2. Read and process data from the CSV file.
     logger.info(f"Reading data from {CSV_PATH}")
     df = pandas.read_csv(CSV_PATH)
+    df = df.sample(1000)  # TODO: remove line
     df = df.where(pandas.notna(df), None)
+    logger.info(f"Initial dataframe shape: {df.shape}")
 
-    # 3. Populate FoundBy table
-    found_by_set = set()
-    # "found_by",
-    columns_to_explode = [
-        "pulse_counts",
-        "unique_ids",
-        "keys",
-    ]
-    df["found_by"] = df["found_by"].dropna()
-    df["found_by"] = df["found_by"].apply(safe_literal_eval)
+    # Drop unnecessary columns
+    logger.info(f"Dropping columns: {ColumnDropGroup}")
+    df = df.drop(columns=ColumnDropGroup)
+    logger.info(f"Shape after dropping columns: {df.shape}")
+
+    # Rename columns
+    logger.info("Renaming columns...")
+    df = df.rename(columns=column_mapping)
+    logger.info(f"Columns after rename: {df.columns.tolist()}")
+
+    # Convert string-encoded arrays to lists
+    logger.info("Converting string-encoded arrays to lists...")
+    explosion_columns = list(ColumnExplodeGroup1) + list(ColumnExplodeGroup2)
+    df.dropna(subset=explosion_columns, inplace=True)
+    logger.info(
+        f"Shape after dropping NaNs from explosion columns: {df.shape}",
+    )
+
+    df[explosion_columns] = df[explosion_columns].map(safe_literal_eval)
+    logger.info("Finished converting columns to lists.")
+
+    # Explode column groups to normalize the data
+    logger.info("Exploding column groups...")
+    df = df.explode(list(ColumnExplodeGroup1))
+    logger.info(f"Shape after exploding group 1 once: {df.shape}")
+    df = df.explode(list(ColumnExplodeGroup1))
+    logger.info(f"Shape after exploding group 1 twice: {df.shape}")
+    df = df.explode(list(ColumnExplodeGroup2))
+    logger.info(f"Shape after exploding group 2: {df.shape}")
+
+    if df.empty:
+        logger.warning(
+            "DataFrame is empty after processing. No data will be loaded.",
+        )
+        return
 
     with session_scope() as session:
-        found_by_map = {}
-        for name in found_by_set:
-            found_by_obj = FoundBy(name=name)
-            session.add(found_by_obj)
-            session.flush()  # Flush to get the ID
-            found_by_map[name] = found_by_obj.id
+        # 3. Populate TestSegment and FoundBy tables
+        logger.info("Populating TestSegment and FoundBy tables...")
 
-        # 4. Process and insert data row by row
-        for _, row in df.iterrows():
-            test_segment_id = row['test_segment_id']
+        # Ingest unique TestSegments
+        unique_segments_df = df[[
+            'test_segment_id',
+            'top_rail',
+            # 'priority'
+        ]].drop_duplicates()
+        for row in unique_segments_df.itertuples(index=False):
+            segment = TestSegment(
+                test_segment_id=row.test_segment_id,
+                top_rail=row.top_rail,
+                priority=None,  # row.priority todo replace back when fixed
+            )
+            session.merge(segment)
 
-            # Create TestSegment if it doesn't exist
-            if not session.query(TestSegment).get(test_segment_id):
-                test_segment = TestSegment(
-                    test_segment_id=test_segment_id,
-                    top_rail=row['top_rail'],
-                    priority=row['priority'],
-                )
-                session.add(test_segment)
+        # Ingest unique FoundBy names
+        unique_found_by_names = df['found_by'].unique()
+        for name in unique_found_by_names:
+            found_by = FoundBy(name=name)
+            session.merge(found_by)
 
-            found_by_list = safe_literal_eval(row['found_by'])
-            pulse_counts_list = safe_literal_eval(row['pulse_counts'])
-            unique_ids_list = safe_literal_eval(row['unique_ids'])
-            keys_list = safe_literal_eval(row['keys'])
+        # Flush to assign IDs before creating Defects
+        session.flush()
 
-            for i, source in enumerate(found_by_list):
-                found_by_id = found_by_map[source]
-                for j, unique_id in enumerate(unique_ids_list[i]):
-                    if not session.query(Defect).get(unique_id):
-                        defect = Defect(
-                            id=unique_id,
-                            test_segment_id=test_segment_id,
-                            found_by_id=found_by_id,
-                            pulse_count=pulse_counts_list[i][j],
-                            key=keys_list[i][j],
-                        )
-                        session.add(defect)
+        # Create a mapping from found_by name to id for quick lookup
+        found_by_map = {
+            obj.name: obj.id
+            for obj in session.query(FoundBy).all()
+        }
+
+        # 4. Populate Defect table
+        logger.info("Populating Defect table...")
+        for row in df:
+            defect = Defect(
+                id=row["defect_id"],
+                test_segment_id=row["test_segment_id"],
+                found_by_id=found_by_map[row["found_by"]],
+                pulse_count=row["pulse_count"],
+                key=row["key"],
+            )
+            session.merge(defect)
 
     logger.info("Normalized data loading complete.")
 
