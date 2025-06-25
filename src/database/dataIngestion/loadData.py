@@ -6,23 +6,21 @@ database.
 # Builtins
 import ast
 import logging
+import uuid
 from pathlib import Path
 from typing import Any
 
 # External
 import pandas
 
-from src.database.dataIngestion.columnConfig import column_mapping
+from src.database.dataIngestion.columnConfig import raw_to_normalised_column_map
 from src.database.dataIngestion.columns import ColumnDropGroup
 from src.database.dataIngestion.columns import ColumnExplodeGroup1
 from src.database.dataIngestion.columns import ColumnExplodeGroup2
+from src.database.dataIngestion.columns import DataBaseColumns
 # Internal
 from src.database.management import BASE
-from src.database.management import Defect
 from src.database.management import ENGINE
-from src.database.management import FoundBy
-from src.database.management import TestSegment
-from src.database.management import session_scope
 
 
 # Logging
@@ -31,9 +29,6 @@ logger = logging.getLogger(__name__)
 
 # CONSTANTS
 REPO_ROOT = Path(__file__).parent.parent.parent.parent
-CSV_PATH = REPO_ROOT / "data" / "found_by_23_July_2022_to_29_July_2022.csv"
-if not CSV_PATH.exists():
-    raise FileNotFoundError(f"CSV file not found at: {CSV_PATH}")
 
 
 def safe_literal_eval(string) -> Any:
@@ -51,20 +46,19 @@ def safe_literal_eval(string) -> Any:
         return []
 
 
-def load_normalized_data():
+def normalise_data(csv_path: Path) -> pandas.DataFrame:
     """
-    Loads and normalizes rail defect data from a CSV file into the database.
-    """
-    logger.info("Starting normalized data loading process...")
+    Normalizes the data in a CSV file.
 
-    # 1. Drop and recreate tables.
-    logger.info("Dropping and recreating normalized tables...")
-    BASE.metadata.drop_all(ENGINE)
-    BASE.metadata.create_all(ENGINE)
+    :param csv_path:
+        path to the CSV file
+    :return:
+        normalized dataframe
+    """
 
     # 2. Read and process data from the CSV file.
-    logger.info(f"Reading data from {CSV_PATH}")
-    df = pandas.read_csv(CSV_PATH)
+    logger.info(f"Reading data from {csv_path}")
+    df = pandas.read_csv(csv_path)
     df = df.sample(1000)  # TODO: remove line
     df = df.where(pandas.notna(df), None)
     logger.info(f"Initial dataframe shape: {df.shape}")
@@ -76,7 +70,7 @@ def load_normalized_data():
 
     # Rename columns
     logger.info("Renaming columns...")
-    df = df.rename(columns=column_mapping)
+    df = df.rename(columns=raw_to_normalised_column_map)
     logger.info(f"Columns after rename: {df.columns.tolist()}")
 
     # Convert string-encoded arrays to lists
@@ -100,65 +94,98 @@ def load_normalized_data():
     logger.info(f"Shape after exploding group 2: {df.shape}")
 
     if df.empty:
-        logger.warning(
-            "DataFrame is empty after processing. No data will be loaded.",
-        )
-        return
-
-    with session_scope() as session:
-        # 3. Populate TestSegment and FoundBy tables
-        logger.info("Populating TestSegment and FoundBy tables...")
-
-        # Ingest unique TestSegments
-        unique_segments_df = df[[
-            'test_segment_id',
-            'top_rail',
-            # 'priority'
-        ]].drop_duplicates()
-        for row in unique_segments_df.itertuples(index=False):
-            segment = TestSegment(
-                test_segment_id=row.test_segment_id,
-                top_rail=row.top_rail,
-                priority=None,  # row.priority todo replace back when fixed
-            )
-            session.merge(segment)
-
-        # Ingest unique FoundBy names
-        unique_found_by_names = df['found_by'].unique()
-        for name in unique_found_by_names:
-            found_by = FoundBy(name=name)
-            session.merge(found_by)
-
-        # Flush to assign IDs before creating Defects
-        session.flush()
-
-        # Create a mapping from found_by name to id for quick lookup
-        found_by_map = {
-            obj.name: obj.id
-            for obj in session.query(FoundBy).all()
-        }
-
-        # 4. Populate Defect table
-        logger.info("Populating Defect table...")
-        for row in df:
-            defect = Defect(
-                id=row["defect_id"],
-                test_segment_id=row["test_segment_id"],
-                found_by_id=found_by_map[row["found_by"]],
-                pulse_count=row["pulse_count"],
-                key=row["key"],
-            )
-            session.merge(defect)
-
-    logger.info("Normalized data loading complete.")
+        raise ValueError("DataFrame is empty after processing.")
+    return df
 
 
-def main():
+def recreate_database() -> None:
+    """
+    Recreates the database from scratch.
+    """
+    BASE.metadata.drop_all(ENGINE)
+    BASE.metadata.create_all(ENGINE)
+
+
+def upload_test_segment_to_database(dataframe: pandas.DataFrame) -> None:
+    """
+
+    :param dataframe:
+    :return:
+    """
+    # Get table raw values
+    test_segment_table = dataframe[["test_segment_id"]].drop_duplicates()
+
+    # Add GUID
+    test_segment_table["guid"] = None
+    test_segment_table["guid"] = test_segment_table["guid"].apply(
+        lambda x: str(uuid.uuid4().hex)
+    )
+
+    # Rename to match database
+    test_segment_table = test_segment_table.rename(columns={
+        "test_segment_id": DataBaseColumns.TEST_SEGMENT_ID
+    })
+
+    # Write to database
+    test_segment_table.to_sql(
+        name='test_segment',
+        con=ENGINE,
+        if_exists='append',
+        index=False,
+    )
+
+
+def upload_player_to_database(dataframe: pandas.DataFrame) -> None:
+    """
+
+    :param dataframe:
+    :return:
+    """
+    # Get table raw values
+    player_table = dataframe[["player"]].drop_duplicates()
+
+    # Add GUID
+    player_table["guid"] = None
+    player_table["guid"] = player_table["guid"].apply(
+        lambda x: str(uuid.uuid4().hex),
+    )
+
+    # Rename to match database
+    player_table = player_table.rename(columns={
+        "player": DataBaseColumns.PLAYER
+    })
+
+    # Write to database
+    player_table.to_sql(
+        name='player',
+        con=ENGINE,
+        if_exists='append',
+        index=False,
+    )
+
+
+def load_normalized_data_to_database(df: pandas.DataFrame) -> None:
+    """
+    Loads and normalizes rail defect data from a CSV file into the database.
+    """
+
+
+def main(csv_path: Path):
     """
     Entry point for the script.
     """
-    load_normalized_data()
+    normalised_df = normalise_data(csv_path)
+    recreate_database()
+
+    upload_test_segment_to_database(normalised_df)
+    upload_player_to_database(normalised_df)
+
+    # load_normalized_data_to_database(normalised_df)
 
 
 if __name__ == '__main__':
-    main()
+    csv_path = REPO_ROOT / "data" / "found_by_23_July_2022_to_29_July_2022.csv"
+    if not csv_path.exists():
+        raise FileNotFoundError(f"CSV file not found at: {csv_path}")
+
+    main(csv_path)

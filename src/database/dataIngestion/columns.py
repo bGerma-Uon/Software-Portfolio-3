@@ -10,7 +10,7 @@ class CSVColumns(StrEnum):
     Tracks the column names of the csv file
     """
     TEST_SEGMENT_ID = "test_segment_id"
-    FOUND_BY = "found_by"
+    PLAYER = "found_by"
     PULSE_COUNT = "pulse_count"
     PULSE_COUNTS = "pulse_counts"
     UNIQUE_ID = "unique_id"
@@ -26,12 +26,25 @@ class NormalisedColumns(StrEnum):
     """
     ID = "id"
     TEST_SEGMENT_ID = "test_segment_id"
-    FOUND_BY = "found_by"
+    PLAYER = "player"
     PULSE_COUNTS = "pulse_counts"
     UNIQUE_IDS = "unique_ids"
     TOP_RAIL = "top_rail"
     KEYS = "keys"
     PRIORITY = "priority"
+
+
+class DataBaseColumns(StrEnum):
+    """
+    Database Column Names
+    """
+    TEST_SEGMENT_ID = "name"
+    PLAYER = "name"
+    PULSE_COUNT = "pulse_count"
+    GROUP = "group"
+    TOP_RAIL = "rail"
+    KEYS = "code"
+    PRIORITY = "level"
 
 
 class ColumnExplodeGroup1(StrEnum):
@@ -47,7 +60,7 @@ class ColumnExplodeGroup2(StrEnum):
     """
     Tracks the column names of the csv file
     """
-    FOUND_BY = NormalisedColumns.FOUND_BY
+    PLAYER = NormalisedColumns.PLAYER
 
 
 class ColumnDropGroup(StrEnum):

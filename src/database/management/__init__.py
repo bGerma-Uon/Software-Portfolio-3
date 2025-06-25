@@ -50,8 +50,8 @@ BASE = declarative_base()
 @contextmanager
 def session_scope() -> Session:  # noqa
     """
-        Provide a transactional scope around a series of operations.
-        """
+    Provide a transactional scope around a series of operations.
+    """
     session = SESSION_MAKER()
     try:
         yield session  # noqa
@@ -74,15 +74,15 @@ class SqlBaseMixin:
     @classmethod
     def get_one(cls, session: Session, **kwargs):
         """
-            Gets a single object from the database based on filter criteria.
-            """
+        Gets a single object from the database based on filter criteria.
+        """
         return session.query(cls).filter_by(**kwargs).one()
 
     @classmethod
     def get_one_or_create(cls, session: Session, **kwargs):
         """
-            Tries to get an object, and if it doesn't exist, creates it.
-            """
+        Tries to get an object, and if it doesn't exist, creates it.
+        """
         try:
             instance = cls.get_one(session, **kwargs)
             return instance, False
@@ -92,16 +92,23 @@ class SqlBaseMixin:
             return instance, True
 
     def save(self, session: Session):
-        """Saves the current instance to the database."""
+        """
+        Saves the current instance to the database.
+        """
         session.add(self)
         return self
 
     def delete(self, session: Session):
-        """Deletes the current instance from the database."""
+        """
+        Deletes the current instance from the database.
+        """
         session.delete(self)
 
 
-from .railDefect import RailDefect
 from .testSegment import TestSegment
-from .foundBy import FoundBy
+from .player import Player
+from .priority import Priority
+from .suspectGroup import SuspectGroup
+from .defectCode import DefectCode
+from .location import Location
 from .defect import Defect
