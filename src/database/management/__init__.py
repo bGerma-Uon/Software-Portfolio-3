@@ -1,15 +1,10 @@
 """
-SQLAlchemy Example
-
-This file provides a comprehensive example of using SQLAlchemy, covering basic
-operations and more advanced features like relationships, session management,
-and base model mixins.
+This is the main management module for the database.
 """
 
 # Builtins
 import logging
 from contextlib import contextmanager
-from pathlib import Path
 
 # External
 from sqlalchemy import create_engine
@@ -53,13 +48,13 @@ BASE = declarative_base()
 # --- Session Management ---
 
 @contextmanager
-def session_scope() -> Session:
+def session_scope() -> Session:  # noqa
     """
     Provide a transactional scope around a series of operations.
     """
     session = SESSION_MAKER()
     try:
-        yield session
+        yield session  # noqa
         session.commit()
     except Exception:
         session.rollback()
@@ -72,8 +67,8 @@ def session_scope() -> Session:
 
 class SqlBaseMixin:
     """
-    A base mixin class that provides common CRUD operations.
-    """
+        A base mixin class that provides common CRUD operations.
+        """
     __abstract__ = True
 
     @classmethod
@@ -92,19 +87,26 @@ class SqlBaseMixin:
             instance = cls.get_one(session, **kwargs)
             return instance, False
         except NoResultFound:
-            instance = cls(**kwargs)
+            instance = cls(**kwargs)  # noqa
             session.add(instance)
             return instance, True
 
     def save(self, session: Session):
-        """Saves the current instance to the database."""
+        """
+        Saves the current instance to the database.
+        """
         session.add(self)
         return self
 
     def delete(self, session: Session):
-        """Deletes the current instance from the database."""
+        """
+        Deletes the current instance from the database.
+        """
         session.delete(self)
 
 
-# Import models here to ensure they are registered with the BASE metadata.
-from .railDefect import RailDefect
+from .testSegment import TestSegment
+from .player import Player
+from .defectCode import DefectCode
+from .location import Location
+from .defect import Defect
