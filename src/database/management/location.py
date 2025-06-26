@@ -7,12 +7,11 @@ from sqlalchemy import Column
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import String
-from sqlalchemy import UniqueConstraint
 from sqlalchemy.orm import relationship
 
 # Internal
-from . import BASE
-from . import SqlBaseMixin
+from src.database.management import BASE
+from src.database.management import SqlBaseMixin
 
 
 class Location(SqlBaseMixin, BASE):
@@ -35,7 +34,3 @@ class Location(SqlBaseMixin, BASE):
     # Relationships
     test_segment = relationship(
         'TestSegment', back_populates='location')
-
-    __table_args__ = (
-        UniqueConstraint('pulse_count', name='_pulse_count_uc'),
-    )

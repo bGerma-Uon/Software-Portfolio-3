@@ -10,7 +10,6 @@ from sqlalchemy import Integer
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey
 from sqlalchemy import String
-from sqlalchemy import UniqueConstraint
 from sqlalchemy.orm import relationship
 
 # Internal
@@ -50,9 +49,4 @@ class Defect(SqlBaseMixin, BASE):
     )
     defect_code = relationship(
         'DefectCode', back_populates='defect',
-    )
-
-    __table_args__ = (
-        UniqueConstraint('priority', name='_priority_uc'),
-        UniqueConstraint('suspect_group', name='_suspect_group_uc'),
     )
