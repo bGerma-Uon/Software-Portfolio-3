@@ -25,7 +25,7 @@ class TestSegment(SqlBaseMixin, BASE):
     guid = Column(String(32), primary_key=True)
     name = Column(String(50), nullable=False)
 
-    defects = relationship('Defect', back_populates='test_segment')
+    locations = relationship('Location', back_populates='test_segment')
 
     __table_args__ = (
         UniqueConstraint('name', name='_name_uc'),
