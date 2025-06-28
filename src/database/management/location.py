@@ -14,6 +14,9 @@ from src.database.management import BASE
 from src.database.management import SqlBaseMixin
 
 
+# CODE
+
+
 class Location(SqlBaseMixin, BASE):
     """
     Represents a record of a rail defect.
@@ -25,12 +28,14 @@ class Location(SqlBaseMixin, BASE):
 
     # Columns
     test_segment_id = Column(
-        String(32), ForeignKey('test_segment.guid'))
+        String(32), ForeignKey('test_segment.guid'),
+    )
     rail = Column(
-        Integer, nullable=False)
+        Integer, nullable=False,
+    )
     pulse_count = Column(
-        Integer, nullable=False)
+        Integer, nullable=False,
+    )
 
     # Relationships
-    test_segment = relationship(
-        'TestSegment', back_populates='location')
+    test_segment = relationship('TestSegment', back_populates='locations')
