@@ -56,7 +56,7 @@ def main():
     csv_path = (
         Path(__file__).resolve().parents[1]
         / 'raw_data'
-        / 'defects_table.csv'
+        / 'player_misses.csv'
     )
 
     if not csv_path.exists():
